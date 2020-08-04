@@ -1,0 +1,23 @@
+---
+title: "PLS Models Template"
+output: pdf_document
+authors: Minyue
+date: 4-Aug-2020
+---
+
+```{r setup, include=FALSE}
+covars<-readRDS("~/dissertation/data/Covariates1.rds")
+
+biomarkers <- c("Monocytes","B","CD4T","CD8T","NK","Eosinophils","Neutrophils","Gel.status")
+
+tab3<-covars %>%
+  select(-Indiv.ID, -id_match) %>%
+  CreateTableOne(strata="case", data=., includeNA = FALSE)
+
+
+tab3<-print(tab3, nonnormal = biomarkers, smd = TRUE)
+
+write.csv(tab3, file = "~/dissertation/dissertation/myTable.csv")
+```
+
+
