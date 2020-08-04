@@ -5,8 +5,8 @@ authors: Minyue
 date: 4-Aug-2020
 ---
 
-```{r setup, include=FALSE}
-covars<-readRDS("~/dissertation/data/Covariates1.rds")
+```{r}
+covars<-readRDS("~/dissertation/dissertation/data/Covariates1.rds")
 
 biomarkers <- c("Monocytes","B","CD4T","CD8T","NK","Eosinophils","Neutrophils","Gel.status")
 

@@ -22,8 +22,11 @@ install_load("compare", "sgPLS", "pheatmap", "RColorBrewer", "utils", "tidyverse
 ```
 
 ```{r}
-proteins<-readRDS("/rdsgpfs/general/user/mw519/home/hda_tds_Mechanomics_project/Proteins/Proteins.rds")
-covars<-readRDS("/rdsgpfs/general/user/mw519/home/hda_tds_Mechanomics_project/Covariates.rds")
+proteins1<-readRDS("~/dissertation/dissertation/data/Proteins.rds")
+covars1<-readRDS("~/dissertation/dissertation/data/Covariates1.rds")
+
+# proteins<-readRDS("/rdsgpfs/general/user/mw519/home/hda_tds_Mechanomics_project/Proteins/Proteins.rds")
+# covars<-readRDS("/rdsgpfs/general/user/mw519/home/hda_tds_Mechanomics_project/Covariates.rds")
 
 
 proteins <- na.omit(proteins)
