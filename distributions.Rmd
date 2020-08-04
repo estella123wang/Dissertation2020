@@ -21,8 +21,7 @@ covars = covars
 
 
 pdf("Figures/Distributions.pdf") #save plots to new file
-par(mfrow = c(3, 3), mar = c(3, 4.5, 1, 1)) 
-
+par(mfrow = c(6, 6), mar = c(3, 4.5, 1, 1)) 
 for (k in 1:ncol(proteins)) {
   xfull = density(proteins[, k])
   x0 = density(proteins[as.character(covars$case) =="0", k])
@@ -38,7 +37,5 @@ for (k in 1:ncol(proteins)) {
            legend = c("Full sample", "Controls", "Cases"), cex = 0.7)
   }
 }
-
-dev.off()
 ```
 

@@ -1,0 +1,93 @@
+---
+title: "Untitled"
+output: html_document
+---
+```{r}
+proteins<-readRDS("~/dissertation/dissertation/data/Proteins.rds")
+covars<-readRDS("~/dissertation/dissertation/data/Covariates1.rds")
+
+proteins <- na.omit(proteins)
+
+comparison <- compare(rownames(proteins),rownames(covars),allowAll=TRUE)
+paired_id<-comparison$tM
+
+proteins = proteins[paired_id,]
+case = covars$case
+
+df<-cbind(case,proteins)
+```
+
+getting descriptive plot
+```{r}
+pca_res <- prcomp(df, scale. = TRUE)
+
+setwd("/rdsgpfs/general/user/mw519/home/dissertation/dissertation/Figures")
+pdf("pca.pdf")
+autoplot(pca_res, data = df, colour = 'case',scale = 0)
+
+dev.off()
+```
+
+```{r}
+library(lfda)
+
+# Local Fisher Discriminant Analysis (LFDA)
+model <- lfda(df[-1], df[, 1], r = 2, metric="plain")
+autoplot(model, data = df, frame = TRUE, frame.colour = 'case')
+```
+
+pca stratified, not useful
+```{r}
+proteins<-readRDS("~/dissertation/dissertation/data/Proteins.rds")
+covars<-readRDS("~/dissertation/dissertation/data/Covariates1.rds")
+
+proteins <- na.omit(proteins)
+
+median_age<-median(covars$age.sample)
+
+covars <-covars[which(covars$gender=="Male"),]
+
+comparison <- compare(rownames(proteins),rownames(covars),allowAll=TRUE)
+paired_id<-comparison$tM
+
+proteins = proteins[paired_id,]
+case = covars$case
+
+df<-cbind(case,proteins)
+
+pca_res <- prcomp(df[-1], scale. = TRUE)
+autoplot(pca_res, data =df, colour = 'case',scale = 0)
+```
+
+train pca and predict, better use python
+```{r}
+proteins<-readRDS("~/dissertation/dissertation/data/Proteins.rds")
+covars<-readRDS("~/dissertation/dissertation/data/Covariates1.rds")
+
+proteins <- na.omit(proteins)
+
+median_age<-median(covars$age.sample)
+
+covars <-covars[which(covars$gender=="Male"),]
+
+comparison <- compare(rownames(proteins),rownames(covars),allowAll=TRUE)
+paired_id<-comparison$tM
+
+proteins = proteins[paired_id,]
+case = covars$case
+
+df<-cbind(case,proteins)
+
+pca_res <- prcomp(df[-1], scale. = TRUE)
+
+pca_1 <- predict(pca_res)
+
+
+PCA_1 <- data.frame(PCA1 = pca_1[,1], PCA2 = pca_1[,2], group = covars$case)
+
+head(PCA_1)
+```
+```{r}
+ggplot(PCA_1, aes(PCA1, PCA2, shape = group, color = group)) + geom_point(size = 4)
+```
+
