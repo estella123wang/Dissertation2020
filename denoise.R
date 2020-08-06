@@ -68,6 +68,6 @@ for (k in seq(1:ncol(proteins))) {
 
 colnames(denoised) = colnames(proteins) 
 rownames(denoised) = rownames(proteins) 
-saveRDS(denoised, "~/dissertation/data/test1_denoised.rds")
+#saveRDS(denoised, "~/dissertation/data/test1_denoised.rds")
 
 
