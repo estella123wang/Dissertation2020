@@ -87,12 +87,12 @@ annot = univ_name
 thr = 0.1
 
 setwd("/rdsgpfs/general/user/mw519/home/dissertation/dissertation/Figures")
-pdf("volcano.pdf",width=20,height=20) 
+#pdf("volcano.pdf",width=20,height=20) 
 
 par(mar = c(4.5, 4.5, 1, 1))
 plot(univ$coef, -log10(as.numeric(univ$pval)), pch = 19,
   las = 1, cex = 0.5, xlab = expression(beta),
-  ylab = expression(-log[10](p[value])), col = ifelse(univ$pval<0.1, yes = "tomato",no = "darkgrey"))
+  ylab = expression(-log[10](p[value])), col = ifelse(p.adjust(univ$pval,method="BH")<0.05, yes = "tomato",no = "darkgrey"))
   
 if (!is.null(annot)) {
     #annot = annot[rownames(univ0), ]
@@ -109,5 +109,6 @@ if (!is.null(annot)) {
          lty = c(2, NA, NA), pch =c(NA,19, 19), cex = 0.7, 
          legend = c("Bonferroni threshold at 0.05", "FDR significanthits", "Not significant"))
          
-dev.off()
+#dev.off()
+#univariate did not select significant portein after adjusted for... 
 ```
