@@ -1,0 +1,173 @@
+---
+title: "PLS Models Template"
+output: pdf_document
+authors: Minyue
+date: 27-Feb-2020
+---
+
+```{r}
+covars = readRDS("~/dissertation/dissertation/data/Covariates1.rds") 
+proteins = readRDS("~/dissertation/dissertation/data/Proteins_denoised.rds")
+proteins = as.data.frame(proteins)
+
+proteins_index <- tibble::rownames_to_column(proteins, "Indiv.ID")
+
+proteins = na.omit(proteins)
+
+#add index as new column
+library(dplyr)
+proteins_index <- tibble::rownames_to_column(proteins, "Indiv.ID")
+
+#join two tables
+library(plyr)
+df <- join(covars, proteins_index,type = "inner")
+dim(df)
+
+#get case + proteins
+df<-df %>% select("case",28:ncol(df))
+df = na.omit(df)
+dim(df)
+
+X_pooled = df[,2:ncol(df)]
+Y_pooled = df$case
+```
+
+```{r}
+suppressPackageStartupMessages(library(omics))
+suppressPackageStartupMessages(library(lme4))
+suppressPackageStartupMessages(library(corpcor))
+suppressPackageStartupMessages(library(abind))
+suppressPackageStartupMessages(library(parallel))
+suppressPackageStartupMessages(library(RColorBrewer))
+#suppressPackageStartupMessages(library(igraph))
+suppressPackageStartupMessages(library(ppcor))
+suppressPackageStartupMessages(library(mvtnorm))
+suppressPackageStartupMessages(library(glasso))
+suppressPackageStartupMessages(library(stabs))
+suppressPackageStartupMessages(library(pulsar))
+suppressPackageStartupMessages(library(pheatmap))
+
+setwd("~/dissertation/dissertation")
+
+source("network_functions.R")
+```
+
+```{r}
+## Estimation step
+
+prostatus = proteins[as.character(covars$case) == 1, ]
+```
+
+
+```{r}
+setwd("~/dissertation/dissertation/Figures")
+pdf("heatmap_case.pdf")
+metric = cor(prostatus)
+bound = 1
+
+tmp = metric
+rownames(tmp) = paste0(rownames(metric))
+#without number
+Heatmap(matrix = tmp, bound = bound, numbers = FALSE,
+        show_colnames = FALSE, show_rownames = TRUE, width = 9, height = 7)
+#with number
+#Heatmap(matrix = tmp, bound = bound, numbers = TRUE,
+        # show_colnames = FALSE, show_rownames = TRUE, width = 9, height = 7)
+dev.off()
+```
+```{r}
+out = Calibrate(data = prostatus, method = "EstimationSelection", implementation = "cor", PFER_thr = +Inf)
+```
+```{r}
+pdf("network_case.pdf")
+
+library(igraph)
+A = GetAdjacency(out)
+
+g = GetGraph(adjacency = A)
+par(mar = rep(0, 4))
+plot(g, layout = layout_with_kk(g))
+dev.off()
+```
+```{r}
+##calibration
+myPFER = 5
+out = Calibrate(data = prostatus, method = "EstimationSelection",
+                implementation = "cor", PFER_thr = myPFER)
+```
+
+```{r}
+pdf("net_cal_case.pdf")
+A = GetAdjacency(out)
+
+g = GetGraph(adjacency = A)
+
+V(g)$label = colnames(proteins)
+
+par(mar = rep(0, 4))
+set.seed(1)
+plot(g, layout = layout_with_fr(g))
+
+dev.off()
+```
+
+#control
+```{r}
+prostatus = proteins[as.character(covars$case) == 0, ]
+
+
+setwd("~/dissertation/dissertation/Figures")
+pdf("heatmap_ctrl.pdf")
+
+metric = cor(prostatus)
+bound = 1
+
+tmp = metric
+rownames(tmp) = paste0(rownames(metric))
+#without number
+Heatmap(matrix = tmp, bound = bound, numbers = FALSE,
+        show_colnames = FALSE, show_rownames = TRUE, width = 9, height = 7)
+#with number
+#Heatmap(matrix = tmp, bound = bound, numbers = TRUE,
+        # show_colnames = FALSE, show_rownames = TRUE, width = 9, height = 7)
+dev.off()
+```
+
+```{r}
+out = Calibrate(data = prostatus, method = "EstimationSelection", implementation = "cor", PFER_thr = +Inf)
+
+
+
+#network for full proteins
+setwd("~/dissertation/dissertation/Figures")
+pdf("network_ctrl.pdf")
+library(igraph)
+A = GetAdjacency(out)
+
+g = GetGraph(adjacency = A)
+par(mar = rep(0, 4))
+plot(g, layout = layout_with_kk(g))
+dev.off()
+```
+
+```{r}
+##calibration
+setwd("~/dissertation/dissertation/Figures")
+pdf("net_cal_ctrl.pdf")
+myPFER = 5
+out = Calibrate(data = prostatus, method = "EstimationSelection",
+                implementation = "cor", PFER_thr = myPFER)
+
+
+A = GetAdjacency(out)
+
+g = GetGraph(adjacency = A)
+
+V(g)$label = colnames(proteins)
+
+par(mar = rep(0, 4))
+set.seed(1)
+plot(g, layout = layout_with_fr(g))
+dev.off()
+```
+

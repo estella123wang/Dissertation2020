@@ -2,7 +2,7 @@
 proteins<-readRDS("~/dissertation/dissertation/data/Proteins.rds")
 covars<-readRDS("~/dissertation/dissertation/data/Covariates1.rds")
 
-ro_tec = readRDS("~/hda_tds_Mechanomics_project/Proteins/Proteins_technical_covariates.rds")
+pro_tec = readRDS("~/hda_tds_Mechanomics_project/Proteins/Proteins_technical_covariates.rds")
 covars = readRDS("~/dissertation/data/Covariates1.rds") 
 
 
