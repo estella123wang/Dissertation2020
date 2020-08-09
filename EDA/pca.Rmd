@@ -1,7 +1,37 @@
 ---
-title: "Untitled"
+title: "pca plots"
 output: html_document
 ---
+```{r}
+proteins_denoised<-readRDS("~/dissertation/dissertation/data/Proteins_denoised.rds")
+covars<-readRDS("~/dissertation/dissertation/data/Covariates1.rds")
+
+proteins_denoised <- na.omit(proteins_denoised)
+
+comparison <- compare(rownames(proteins_denoised),rownames(covars),allowAll=TRUE)
+paired_id<-comparison$tM
+
+proteins_denoised = proteins_denoised[paired_id,]
+case = covars$case
+
+df<-cbind(case,proteins_denoised)
+
+# library(devtools)
+# install_github('sinhrks/ggfortify')
+# library(ggfortify)
+# library(ggplot2)
+
+pca_res <- prcomp(proteins_denoised, scale. = TRUE)
+summary(pca_res)
+
+#get pca plot
+setwd("/rdsgpfs/general/user/mw519/home/dissertation/dissertation/Figures")
+pdf("pca_denoised.pdf")
+autoplot(pca_res, data = df, colour = 'case',scale = 0)
+
+dev.off()
+```
+
 ```{r}
 proteins<-readRDS("~/dissertation/dissertation/data/Proteins.rds")
 covars<-readRDS("~/dissertation/dissertation/data/Covariates1.rds")
@@ -15,18 +45,25 @@ proteins = proteins[paired_id,]
 case = covars$case
 
 df<-cbind(case,proteins)
-```
 
-getting descriptive plot
-```{r}
-pca_res <- prcomp(df, scale. = TRUE)
+# library(devtools)
+# install_github('sinhrks/ggfortify')
+# library(ggfortify)
+# library(ggplot2)
 
+pca_res <- prcomp(proteins, scale. = TRUE)
+summary(pca_res)
+
+#get pca plot
 setwd("/rdsgpfs/general/user/mw519/home/dissertation/dissertation/Figures")
 pdf("pca.pdf")
 autoplot(pca_res, data = df, colour = 'case',scale = 0)
 
 dev.off()
 ```
+
+
+
 
 ```{r}
 library(lfda)

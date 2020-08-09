@@ -1,5 +1,5 @@
 ```{r}
-proteins<-readRDS("~/dissertation/dissertation/data/Proteins.rds")
+proteins<-readRDS("~/dissertation/dissertation/data/Proteins_denoised.rds")
 covars<-readRDS("~/dissertation/dissertation/data/Covariates1.rds")
 
 pro_tec = readRDS("~/hda_tds_Mechanomics_project/Proteins/Proteins_technical_covariates.rds")
@@ -27,11 +27,14 @@ covars$subtype[is.na(covars$subtype)] <- 0
 
 
 
-proteins =readRDS("~/dissertation/data/Proteins.rds")
-
 proteins <- na.omit(proteins)
 
-comparison <- compare(rownames(proteins),rownames(covars),allowAll=TRUE)
+
+
+library(compare)
+comparison <- compare(rownames(proteins),rownames(covars),
+                      allowAll=TRUE)
+
 paired_id<-comparison$tM
 
 proteins = proteins[paired_id,]
@@ -80,14 +83,14 @@ univ <- as.data.frame(univ)
 
 
 library(data.table)
-univ_name<-setDT(univ0, keep.rownames = TRUE)[]
+univ_name<-setDT(univ, keep.rownames = TRUE)[]
 
 
 annot = univ_name
 thr = 0.1
 
 setwd("/rdsgpfs/general/user/mw519/home/dissertation/dissertation/Figures")
-#pdf("volcano.pdf",width=20,height=20) 
+pdf("volcano.pdf",width=20,height=20) 
 
 par(mar = c(4.5, 4.5, 1, 1))
 plot(univ$coef, -log10(as.numeric(univ$pval)), pch = 19,
@@ -95,20 +98,25 @@ plot(univ$coef, -log10(as.numeric(univ$pval)), pch = 19,
   ylab = expression(-log[10](p[value])), col = ifelse(p.adjust(univ$pval,method="BH")<0.05, yes = "tomato",no = "darkgrey"))
   
 if (!is.null(annot)) {
-    #annot = annot[rownames(univ0), ]
-    text(univ0$coef, -log10(univ$pval), pos = 3,offset = 0.2, cex = 0.5,
+    text(univ$coef, -log10(univ$pval), pos = 3,offset = 0.2, cex = 0.5,
          labels=ifelse(univ$pval < thr, yes = annot$rn, no = ""))
 }
 
   abline(v = 0, lty = 3)
   
-  abline(h = -log10(0.05/nrow(univ)), lty = 2,col = "darkred")
+  abline(h = -log10(0.05/nrow(univ)), lty = 2,col = "darkred") #higher line, correct one
   abline(h = 1, lty = 2,col = "darkred")
   
   legend("topleft", col = c("darkred", "tomato","darkgrey"), 
          lty = c(2, NA, NA), pch =c(NA,19, 19), cex = 0.7, 
          legend = c("Bonferroni threshold at 0.05", "FDR significanthits", "Not significant"))
          
-#dev.off()
+dev.off()
 #univariate did not select significant portein after adjusted for... 
+#coef:pos/neg; pval
 ```
+
+```{r}
+-log10(0.05/nrow(univ))
+```
+
