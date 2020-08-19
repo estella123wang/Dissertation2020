@@ -1,0 +1,52 @@
+```{r}
+suppressPackageStartupMessages(library(lme4))
+suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(RColorBrewer))
+
+denoised = NULL 
+Beta_pooled = NULL 
+pvalue_pooled = NULL
+
+
+setwd("~/dissertation/dissertation/adduct")
+adc <- read.csv("Adductomics_imputed.csv")
+cov <- read.csv("Covariates1.csv")
+adc_tec <- read.csv("Adductomics_technical_covariates.csv")
+
+#concat adc_tec to cov
+cov1 <- merge(x=cov,y=adc_tec,by.x="X",by.y="EPIC_ID")
+```
+
+```{r}
+#library(lme4)
+#start from 2nd
+
+for (k in c(2:ncol(adc))) {
+  model = lmer(adc[,k] ~ age.sample + gender + bmi + (1 | Analytical.batch) + (1|Extraction.batch) +case, 
+             data = cov1, 
+             REML = FALSE,
+             control = lmerControl(check.conv.singular = .makeCC(action ="ignore",tol = 1e-04)))
+  
+  
+  
+  model0 = lmer(adc[,k] ~ age.sample + gender + bmi + (1 | Analytical.batch) + (1|Extraction.batch), data = cov1, REML = FALSE,control = lmerControl(check.conv.singular = .makeCC(action = "ignore", tol = 1e-04)))
+  
+  
+  
+  pvalue_pooled = c(pvalue_pooled, anova(model, model0)$"Pr(>Chisq)"[2]) 
+  
+  beta = fixef(model)[c("(Intercept)", "case")]
+
+  Beta_pooled = c(Beta_pooled, fixef(model)["type1"])
+  
+ X = cbind(rep(1,length(cov1$case)),
+           as.numeric(cov1$case))
+
+denoised = cbind(denoised,(X %*% beta + resid(model)))
+}
+
+adc1 <- adc[,-1]
+
+colnames(denoised) = colnames(adc1) 
+rownames(denoised) = rownames(adc1)
+```
