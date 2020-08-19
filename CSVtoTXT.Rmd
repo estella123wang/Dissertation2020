@@ -1,0 +1,35 @@
+```{r}
+setwd("~/Desktop/data/Adductomics")
+adduct <- read.csv("adduct_denoised.csv")
+```
+```{r}
+#clean data
+add1 <- adduct[,-ncol(adduct)]
+
+Tadd = t(add1)
+Tadd = as.data.frame(Tadd)
+dim(Tadd)
+```
+
+```{r}
+setwd("~/Desktop/data/Adductomics/isoton")
+write.table(Tadd, "add_denoised.txt",sep=" ", col.names = FALSE, row.names = FALSE)
+```
+
+
+
+```{r}
+setwd("~/Desktop/data/Metabolites")
+pos <- read.csv("N0.csv")
+
+pos1 <- pos[,-c(1:6)]
+dim(pos1)
+
+posT= t(pos1)
+posT= as.data.frame(posT)
+
+setwd("~/Desktop/data/Metabolites/isoton")
+write.table(posT, "positive.txt", sep = " ", col.names = FALSE, row.names = FALSE)
+
+dim(posT)
+```

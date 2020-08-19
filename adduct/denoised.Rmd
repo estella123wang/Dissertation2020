@@ -50,3 +50,12 @@ adc1 <- adc[,-1]
 colnames(denoised) = colnames(adc1) 
 rownames(denoised) = rownames(adc1)
 ```
+```{r}
+data <- cbind(denoised, cov1$case)
+```
+
+```{r}
+data <- as.data.frame(data)
+write_csv(data,"~/dissertation/dissertation/adduct/adduct_denoised.csv")
+```
+
