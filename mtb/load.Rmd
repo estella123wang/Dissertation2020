@@ -1,0 +1,44 @@
+```{r}
+install_load <- function(...) {
+  for (package in list(...)) {
+    require(package, character.only=TRUE) || install.packages(package)
+    library(package, character.only=TRUE)
+  }
+}
+```
+
+Load the packages required for reading and manipulating the data.
+```{r}
+install_load("tidyverse", "readxl")
+```
+
+Load covariate, metabolite, and worklist data into relevant variables.
+```{r}
+setwd("~/dissertation/dissertation/mtb")
+data_covariate <- read.csv("Covariates1.csv")
+data_metabolite_pos <- read.csv("mtb_pos.csv")
+data_metabolite_neg <- read.csv("mtb_neg.csv")
+data_metabolite_worklist_pos <- read_excel("LC-MS_worklist_LunCan_RPpos.xlsx")
+data_metabolite_worklist_neg <- read_excel("LC-MS_worklist_LunCan_RPneg.xlsx")
+```
+
+Combine all data into a single table named `data` to facilitate further analysis. Each row will represent a case  (including the blank samples from the metabolite data) and the columns will contain covariate, metabolite, and worklist data. Metabolite columns take the form `[Positive or Negative mode]_[Mass/Charge ratio]@[Retention time]`. Worklist columns are suffixed by either `.pos` or `.neg` to identify which mode of mass spectroscopy they relate to.
+```{r}
+process_metabolite <- function(df, prefix="") {
+  df <- df %>% 
+    column_to_rownames("Compound") %>% 
+    t() %>% 
+    as.data.frame() %>% 
+    rename_all(function(x) paste0(prefix, x)) %>%
+    rownames_to_column("Compound") %>%
+    separate(Compound, c("Sample.ID", "Indiv.ID"), sep="_", extra="drop")
+  return(df)
+}
+
+data <- data_covariate %>%
+  mutate(Indiv.ID=as.character(Indiv.ID)) %>%
+  full_join(process_metabolite(data_metabolite_pos, "POS_"), by="Indiv.ID") %>%
+  full_join(process_metabolite(data_metabolite_neg, "NEG_"), by=c("Indiv.ID", "Sample.ID")) %>%
+  left_join(data_metabolite_worklist_pos, by=c("Indiv.ID"="Sample Name")) %>%
+  left_join(data_metabolite_worklist_neg, by=c("Indiv.ID"="Sample Name"), suffix=c(".pos", ".neg"))
+```

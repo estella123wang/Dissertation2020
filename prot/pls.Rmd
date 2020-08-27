@@ -1,0 +1,154 @@
+---
+title: "PLS Models Template"
+output: pdf_document
+authors: Minyue
+date: 4-Aug-2020
+---
+
+```{r}
+install_load = function(...) {
+  for (package in list(...)) {
+    require(package, character.only=TRUE) || install.packages(package)
+    library(package, character.only=TRUE)
+  }
+}
+
+source("~/dissertation/dissertation/pls_functions.R")
+
+install_load("compare", "sgPLS", "pheatmap", "RColorBrewer", "utils", "tidyverse")
+```
+
+```{r}
+#load data
+setwd("~/dissertation/dissertation/prot")
+proteins<-read.csv("prot_denoised_new.csv")
+covars<-read.csv("Covariates1.csv")
+
+
+proteins <- na.omit(proteins)
+
+comparison <- compare(rownames(proteins),rownames(covars),allowAll=TRUE)
+paired_id<-comparison$tM
+
+proteins = proteins[paired_id,]
+covars = covars[paired_id,]
+
+X_pooled<-proteins
+
+Y_pooled = covars$case
+```
+
+```{r}
+#tumour necrosis factors
+TNF = c(colnames(proteins[,grepl("TNF",colnames(proteins))]),"OPG")
+#length(TNF)
+
+chemo = c("OSM","STAMBP",colnames(proteins[,grepl("CCL",colnames(proteins))]),colnames(proteins[,grepl("CX", colnames(proteins))]),colnames(proteins[,grepl("MCP", colnames(proteins))]),colnames(proteins[,grepl("MMP", colnames(proteins))]))
+#length(chemo)
+
+#OSM http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.460.779&rep=rep1&type=pdf
+
+interleukins = colnames(proteins[,grepl("IL", colnames(proteins))])
+#length(interleukins)
+
+interferons = colnames(proteins[,grepl("CD", colnames(proteins))])
+#length(interferons)
+  
+cycle = c("PDL1","SCF","SIRT2","CASP8","CST5")
+#length(cycle)
+
+growth = c("VEGFA", "LAPTGFbeta1", "TGFalpha", "FGF23", "FGF5","FGF21", "BetaNGF", "HGF", "FGF19", "NRTN",
+    "NT3","ARTN", "DNER", "GDNF", "AXIN1")
+#length(growth)
+
+Meta = c("ST1A1","uPA","ADA","ENRAGE","CST5","CSF1")
+#length(Meta)
+
+tempGroups = c(TNF,chemo,interleukins,Meta, growth,cycle,interferons)
+#length(tempGroups)
+
+lymphokines <- setdiff(colnames(proteins),tempGroups)
+
+Groups = c(TNF, chemo, interleukins, interferons, cycle, growth, Meta)
+
+X_pooled = X_pooled[,Groups]
+
+Xgroups = c(5, 28, 52, 58, 63, 79, 85)
+
+colnames(X_pooled)
+```
+
+```{r}
+Y_pooled<-as.factor(Y_pooled)
+```
+
+plsda sample from: https://www.rdocumentation.org/packages/caret/versions/6.0-86/topics/plsda
+```{r}
+MyPLSDA_pooled <- plsda(X_pooled, Y_pooled, ncomp = 5)
+
+MyPLSDA_pooled$loadings$X[1]
+MyPLSDA_pooled$loadings$Y
+MyPLSDA_pooled$explained_variance
+```
+
+```{r}
+MysPLSDA_pooled <- splsda(X_pooled, Y_pooled, ncomp = 2, keepX = c(25, 25))
+```
+
+```{r}
+list.keepX <- c(1:10,  seq(20, 300, 10))
+
+MysPLSDA_pooled <- tune.splsda(X_pooled, Y_pooled, ncomp = 1, validation = 'Mfold', folds = 5, progressBar = TRUE, dist = 'max.dist', measure = "BER",test.keepX = list.keepX, nrepeat = 10, cpus = 2)
+```
+
+
+
+Plots
+```{r}
+MyPal = brewer.pal("Paired", n = 12) 
+MyPalPairsExt <- colorRampPalette(MyPal)(28)
+
+Loadings = cbind(MyPLSDA_pooled$loadings$X, MysPLSDA_pooled$loadings$X, rep(NA, 28), rep(NA, 28))
+
+Loadings = as.vector(t(Loadings))
+
+Loadings = Loadings[-c(length(Loadings) - 1, length(Loadings))]
+```
+
+Plot of loadings
+```{r}
+#setwd("/rdsgpfs/general/user/mw519/home/dissertation/dissertation/Figures")
+#pdf("pls_and_splsda.pdf",width=18,height=5) 
+
+par(mar = c(10, 5, 1, 1))
+
+plot(Loadings, col = c(MyPal[6], MyPal[10], NA, NA), xaxt = "n", ylab = "Loadings Coefficients", type = "h",lwd = 3, xlab = "")
+
+axis(1, at = seq(1.5, 84 * 4, by = 4), labels = colnames(MyPLSDA_pooled$X),
+las = 2)
+
+axis(1, at = c(0, Xgroups, 28) * 4, line = 6, labels = NA) 
+
+axis(1, at = c(2,15,40,55,61,70,83,90) * 4, labels = c("TNF", "chemo", "interleukins", "interferons", "cycle", "growth", "Meta", "lymphokines"), line = 6, tick = FALSE)
+     
+abline(v = c(0, Xgroups, 28) * 4, lty = 3, col = "black") 
+abline(h = 0, lty = 2)
+
+legend("bottomright", legend = c("PLS-DA", "sPLS-DA"),lty = 1, lwd = 3, col = c(MyPal[6], MyPal[10], NA, NA), cex = 0.75)
+
+#dev.off()
+```
+
+heatmap
+```{r}
+#setwd("/rdsgpfs/general/user/mw519/home/dissertation/dissertation/Figures")
+#pdf("heatmap_pls_splsda.pdf",width=20,height=20) 
+
+set.seed(1)
+Stability_results = StabilityPlot(X = X_pooled, Y = Y_pooled,
+NIter = 100)
+pheatmap(Stability_results, cluster_rows = FALSE, cluster_cols = FALSE, display_numbers = TRUE, filename = "Fig2_B.pdf",
+height = 5, width = 10)
+
+#dev.off()
+```

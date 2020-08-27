@@ -1,0 +1,122 @@
+```{r}
+proteins<-readRDS("~/dissertation/dissertation/data/Proteins_denoised.rds")
+covars<-readRDS("~/dissertation/dissertation/data/Covariates1.rds")
+
+pro_tec = readRDS("~/hda_tds_Mechanomics_project/Proteins/Proteins_technical_covariates.rds")
+covars = readRDS("~/dissertation/data/Covariates1.rds") 
+
+
+
+library(plyr)
+require(dplyr)
+pro_tec$plate <- pro_tec$Plate.ID
+
+pro_tec <- 
+    pro_tec %>%
+        mutate(plate = revalue(plate, c('20181212-001_SP190747_INFI'=1, 
+                                        '20181212-002_SP190748_INFI'=2,
+                                        '20181212-003_SP190749_INFI'=3,
+                                        '20181212-004_SP190750_INFI'=4,
+                                        '20181212-005_SP190751_INFI'=5,
+                                        '20181212-006_SP190752_INFI'=6,
+                                        '20181212-007_SP190753_INFI'=7,
+                                        '20181212-008_SP190754_INFI'=8)))
+
+covars<-merge(pro_tec,covars)
+covars$subtype[is.na(covars$subtype)] <- 0
+
+
+
+proteins <- na.omit(proteins)
+
+
+
+library(compare)
+comparison <- compare(rownames(proteins),rownames(covars),
+                      allowAll=TRUE)
+
+paired_id<-comparison$tM
+
+proteins = proteins[paired_id,]
+
+
+suppressPackageStartupMessages(library(lme4))
+suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(RColorBrewer))
+
+
+
+denoised = NULL 
+Beta_pooled = NULL 
+pvalue_pooled = NULL
+
+foo = function(X) {
+  model0 = lmer(X ~ age.sample + gender  + centre + (1 | plate), data = covars, REML = FALSE,
+               control = lmerControl(check.conv.singular = .makeCC(action = "ignore",tol = 1e-04)))
+  model1 = lmer(X ~ age.sample + gender  + centre + (1 | plate) + case, data = covars, REML = FALSE,control = lmerControl(check.conv.singular = .makeCC(action = "ignore", tol = 1e-04)))
+  
+  vcov = as.data.frame(VarCorr(model1))$vcov
+  res = c(summary(model1)$coefficients["case1", 1:2], anova(model0, model1)$`Pr(>Chisq)`[2],
+  vcov[1]/sum(vcov), vcov[2]/sum(vcov))
+  names(res) = c("coef", "coef.se", "pval", "icc.subject", "icc.chip") 
+  return(res)
+}
+
+
+
+pro_log = log(proteins)
+sum(is.na(pro_log))
+for(i in 1:ncol(pro_log)){
+  pro_log[is.na(pro_log[,i]), i] <- mean(pro_log[,i], na.rm = TRUE)
+}
+sum(is.na(pro_log))
+
+
+
+t0 = Sys.time()
+univ = t(apply(pro_log[, 1:ncol(pro_log)], 2, FUN = foo)) 
+t1 = Sys.time()
+print(t1 - t0)
+
+
+univ <- as.data.frame(univ)
+
+
+library(data.table)
+univ_name<-setDT(univ, keep.rownames = TRUE)[]
+
+
+annot = univ_name
+thr = 0.1
+
+setwd("/rdsgpfs/general/user/mw519/home/dissertation/dissertation/Figures")
+pdf("volcano.pdf",width=20,height=20) 
+
+par(mar = c(4.5, 4.5, 1, 1))
+plot(univ$coef, -log10(as.numeric(univ$pval)), pch = 19,
+  las = 1, cex = 0.5, xlab = expression(beta),
+  ylab = expression(-log[10](p[value])), col = ifelse(p.adjust(univ$pval,method="BH")<0.05, yes = "tomato",no = "darkgrey"))
+  
+if (!is.null(annot)) {
+    text(univ$coef, -log10(univ$pval), pos = 3,offset = 0.2, cex = 0.5,
+         labels=ifelse(univ$pval < thr, yes = annot$rn, no = ""))
+}
+
+  abline(v = 0, lty = 3)
+  
+  abline(h = -log10(0.05/nrow(univ)), lty = 2,col = "darkred") #higher line, correct one
+  abline(h = 1, lty = 2,col = "darkred")
+  
+  legend("topleft", col = c("darkred", "tomato","darkgrey"), 
+         lty = c(2, NA, NA), pch =c(NA,19, 19), cex = 0.7, 
+         legend = c("Bonferroni threshold at 0.05", "FDR significanthits", "Not significant"))
+         
+dev.off()
+#univariate did not select significant portein after adjusted for... 
+#coef:pos/neg; pval
+```
+
+```{r}
+-log10(0.05/nrow(univ))
+```
+

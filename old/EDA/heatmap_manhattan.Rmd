@@ -1,0 +1,133 @@
+```{r}
+suppressPackageStartupMessages(library(pheatmap)) 
+
+setwd("/rdsgpfs/general/user/mw519/home/dissertation/dissertation/Figures")
+pdf("heatmap_full_pro.pdf",width=20,height=20) 
+
+
+print(all(colnames(pro_log) == rownames(univ)))
+
+
+#pro_log_bonf = pro_log[, univ$pval < 0.05/nrow(univ)]
+#mycor = cor(pro_log_bonf)
+
+mycor = cor(pro_log)
+
+pheatmap(mycor, show_rownames = FALSE, show_colnames = FALSE, breaks = seq(-1, 1, length.out = 100))
+
+dev.off()
+```
+
+
+
+```{r}
+#preprocessing
+annot = readRDS("~/dissertation/data/annot.rds")
+table(annot$Chromosome=="", annot$Probe_Coordinates=="")
+annot$Position=gsub("-.*", "", annot$Probe_Coordinates)
+annot$Chromosome[annot$Chromosome == "X"] = 23 
+annot$Chromosome[annot$Chromosome == "Y"] = 24 
+annot$Chromosome = as.numeric(annot$Chromosome)
+tmp = lapply(split(as.numeric(annot$Position), f = as.factor(annot$Chromosome)), max, na.rm = TRUE)
+tmp = unlist(tmp)[sort.list(as.numeric(names(tmp)))] 
+nchr = max(as.numeric(annot$Chromosome), na.rm = TRUE) 
+tmp = tmp[as.character(1:nchr)]
+chr_boundaries = c(0, cumsum(as.numeric(tmp) + 3 *10^7))
+chr_boundaries = chr_boundaries 
+names(chr_boundaries) = c(0, names(tmp)) 
+annot$GenomePosition = as.numeric(annot$Position) +
+  chr_boundaries[as.character(as.numeric(annot$Chromosome) - 1)]
+```
+
+```{r}
+results = univ
+#annot = NULL
+annotate = TRUE
+thr = 0.05
+
+nchr = max(as.numeric(annot$Chromosome), na.rm = TRUE) #get max annot
+
+  annot1 = annot[rownames(results), ]
+  annot1 = annot[rownames(results), ] 
+annot1#table with same col name filled with NA
+
+  library(RColorBrewer)
+  mypal = brewer.pal(n = 12, name = "Paired")#select color palette
+mypal
+```
+
+```{r}
+Y_value = colnames(proteins)
+typeof(Y_value)
+#Y_value = as.numeric(Y_value)
+#typeof(Y_value)
+```
+```{r}
+Y_value = c(1:92)
+```
+
+
+```{r}
+colors = colorRampPalette(c("navy", "blue", "skyblue"))(24) 
+  colors = colorRampPalette(mypal)(24)
+
+  par(mar = c(3, 4.5, 1, 1)) 
+  plot(Y_value, -log10(results$pval),col = colors[annot$Chromosome], pch = 19, cex = 0.5, xlab = "", ylab = expression(-log[10](p[value])), las = 1, xaxt = "n")
+  # axis(side = 1, at = chr_boundaries[-length(chr_boundaries)] + (chr_boundaries[-1] - chr_boundaries[-length(chr_boundaries)])/2, 
+  #      labels = c(seq(1:22), "X", "Y")[1:nchr], 
+  #      tick = FALSE, cex.axis = 0.6)
+  # axis(side = 1, at = chr_boundaries, labels = NA, col.ticks = "grey")
+  abline(h = 0.5, lty = 2, col = "darkred")
+
+ if (annotate) {
+   text(Y_value, -log10(results$pval),
+     pos = 3, offset = 0.2, cex = 0.5, labels = ifelse(results$pval < 10, yes = colnames(proteins), no = ""))
+ }
+```
+```{r}
+chr_boundaries
+```
+```{r}
+-log10(0.05/nrow(results))
+```
+
+```{r}
+-log10(results$pval)
+```
+
+
+```{r}
+  colors = colorRampPalette(c("navy", "blue", "skyblue"))(24) 
+  colors = colorRampPalette(mypal)(24)
+
+  par(mar = c(3, 4.5, 1, 1)) 
+  plot(annot$GenomePosition, -log10(results$pval),
+  col = colors[annot$Chromosome], pch = 19, cex = 0.5, xlab = "", ylab = expression(-log[10](p[value])), las = 1, xaxt = "n")
+  axis(side = 1, at = chr_boundaries[-length(chr_boundaries)] + (chr_boundaries[-1] - chr_boundaries[-length(chr_boundaries)])/2, 
+       labels = c(seq(1:22), "X", "Y")[1:nchr], 
+       tick = FALSE, cex.axis = 0.6)
+  axis(side = 1, at = chr_boundaries, labels = NA, col.ticks = "grey")
+  abline(h = -log10(0.05/nrow(results)), lty = 2, col = "darkred")
+
+  if (annotate) {
+    text(annot$GenomePosition, -log10(results$pval),
+      pos = 3, offset = 0.2, cex = 0.5, labels = ifelse(results$pval < thr, yes = annot$Symbol, no = ""))
+  } 
+```
+
+
+
+
+```{r}
+library(qqman)
+
+# Make the Manhattan plot on the gwasResults dataset
+manhattan(gwasResults, chr="CHR", bp="BP", snp="SNP", p="P" )
+```
+```{r}
+qq(gwasResults$P)
+```
+```{r}
+gwasResults
+```
+

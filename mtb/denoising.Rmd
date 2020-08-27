@@ -1,0 +1,122 @@
+---
+title: "Denoising"
+output: pdf_document
+authors: Adam, Minyue, Nael, and Sonja
+date: 19-Feb-2020
+---
+
+Load the cleaned covariate, metabolite, and worklist data.
+```{r}
+source_rmd <- function(f){library(knitr); source(purl(f, tempfile(), quiet=TRUE))}
+source_rmd("clean.Rmd")
+```
+
+Load mixOmics package to calculate mixed linear models.
+```{r}
+install_load("omics")
+```
+
+Filter only females and split data into positive and negative metabolites.
+```{r}
+data_clean_female <- data_clean %>% filter(gender == "Female")
+
+data_clean_neg <- data_clean_female %>% select(matches("NEG_.*"))
+data_clean_pos <- data_clean_female %>% select(matches("POS_.*"))
+```
+
+
+```{r}
+data_mlmer <- data_clean_female %>% 
+  mutate(Position.pos=factor(Position.pos), 
+         Position.neg=factor(Position.neg), 
+         Plate.pos=factor(Plate.pos),
+         Plate.neg=factor(Plate.neg))
+```
+
+Use mixed linear models to denoise positive metabolite data on plate, position, age, and BMI. For cases missing BMI data we denoise on the other variables - as there is no obvious way of manually calculating residuals from mlmer we use the non ideal solution of calling mlmer again and combining the results.
+
+
+```{r}
+cov1 = data_mlmer[,c(1:35)]
+```
+
+
+```{r}
+denoised_pos = NULL
+
+#only female! no need to adjust gender
+for (k in c(1:ncol(data_clean_pos))) {
+  model = lmer(data_clean_pos[,k] ~ age.sample + bmi + centre + education_plco  +  smok_duration + smok_intensity + smoking_status + (1 | Plate.pos) + (1|Position.pos) + Monocytes + B + CD4T + CD8T +NK + case, 
+             data = cov1, 
+             REML = FALSE,
+             control = lmerControl(check.conv.singular = .makeCC(action ="ignore",tol = 1e-04)))
+  
+  
+  
+  model0 = lmer(data_clean_pos[,k] ~ age.sample  + bmi + centre + education_plco  +  smok_duration + smok_intensity + smoking_status + (1 | Plate.pos) + (1|Position.pos) + Monocytes + B + CD4T + CD8T +NK, data = cov1, REML = FALSE,control = lmerControl(check.conv.singular = .makeCC(action = "ignore", tol = 1e-04)))
+  
+  
+  
+  pvalue_pooled = c(pvalue_pooled, anova(model, model0)$"Pr(>Chisq)"[2]) 
+  
+  beta = fixef(model)[c("(Intercept)", "case")]
+
+  Beta_pooled = c(Beta_pooled, fixef(model)["type1"])
+  
+ X = cbind(rep(1,length(cov1$case)),
+           as.numeric(cov1$case))
+
+denoised_pos = cbind(denoised_pos,(X %*% beta + resid(model)))
+}
+```
+
+```{r}
+#adc1 <- adc[,-1]
+
+colnames(denoised_pos) = colnames(data_clean_pos) 
+rownames(denoised_pos) = rownames(data_clean_pos)
+
+denoised_pos1 = as.data.frame(denoised_pos)
+
+setwd("~/dissertation/dissertation/mtb")
+write.csv(denoised_pos1,"mtb_pos_denoised.csv")
+```
+
+
+
+
+```{r}
+denoised_neg = NULL
+
+for (k in c(1:ncol(data_clean_neg))) {
+  model = lmer(data_clean_neg[,k] ~ age.sample + bmi + centre + education_plco  +  smok_duration + smok_intensity + smoking_status + (1 | Plate.neg) + (1|Position.neg) +  Monocytes + B + CD4T + CD8T + NK + case, 
+             data = cov1, 
+             REML = FALSE,
+             control = lmerControl(check.conv.singular = .makeCC(action ="ignore",tol = 1e-04)))
+  
+  
+  
+  model0 = lmer(data_clean_neg[,k] ~ age.sample  + bmi + centre + education_plco  +  smok_duration + smok_intensity + smoking_status + (1 | Plate.neg) + (1|Position.neg) + Monocytes + B + CD4T + CD8T + NK, data = cov1, REML = FALSE,control = lmerControl(check.conv.singular = .makeCC(action = "ignore", tol = 1e-04)))
+  
+  
+  
+  pvalue_pooled = c(pvalue_pooled, anova(model, model0)$"Pr(>Chisq)"[2]) 
+  
+  beta = fixef(model)[c("(Intercept)", "case")]
+
+  Beta_pooled = c(Beta_pooled, fixef(model)["type1"])
+  
+ X = cbind(rep(1,length(cov1$case)),
+           as.numeric(cov1$case))
+
+denoised_neg = cbind(denoised_neg,(X %*% beta + resid(model)))
+}
+
+colnames(denoised_neg) = colnames(data_clean_neg) 
+rownames(denoised_neg) = rownames(data_clean_neg)
+
+denoised_neg1 = as.data.frame(denoised_neg)
+
+setwd("~/dissertation/dissertation/mtb")
+write.csv(denoised_neg1,"mtb_neg_denoised.csv")
+```

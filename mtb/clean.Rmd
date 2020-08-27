@@ -1,0 +1,81 @@
+s---
+title: "Cleaning"
+output: pdf_document
+authors: Adam, Minyue, Nael, and Sonja
+date: 11-Feb-2020
+---
+
+Load the combined covariate, metabolite, and worklist data.
+```{r}
+setwd("~/dissertation/dissertation/mtb")
+source_rmd <- function(f){library(knitr); source(purl(f, tempfile(), quiet=TRUE))}
+source_rmd("load.Rmd")
+```
+
+Load impute package needed for "impute.knn".
+```{r include=FALSE}
+install_load("BiocManager")
+if (!require("impute")) BiocManager::install("impute")
+library("impute")
+```
+
+Clean our data frame by removing duplicate metabolites (features) and samples by only keeping the most recent. Also remove any blank samples that were used for quality control.
+```{r}
+data_clean <- data %>%
+  select(-`POS_855.8915@6.0343328:2`) %>% # Remove duplicate metabolite (feature)
+  rename(`POS_855.8915@6.0343328`=`POS_855.8915@6.0343328:1`) %>% #renames to remove colon
+  group_by(Indiv.ID) %>% # Remove duplicate samples
+  summarise_all(last) %>% # keep last individual
+  filter(!is.na(case)) # Remove blank samples
+```
+
+Extract metabolite (feature) information from cleaned table. Remove any features with more than 50% missing data or zero variance. Finally, log transform the metabolite (feature) data. 
+```{r}
+data_metabolite <- data_clean %>%
+  select(matches("POS_.*|NEG_.*")) %>% # Select anything that begins with "POS" or "NEG"
+  select_if(~mean(is.na(.)) <= 0.50) %>% # Remove features with more than 50% NA's; dot means anything that's being pushed into it
+  select_if(~length(unique(.)) > 1) %>% # Remove all metabolites that have zero variance
+  mutate_all(log10) # Convert all metabolites (features) to log scale
+```
+
+Remove any participants (rows) with more than 80% missing data.
+```{r}
+data_clean <- data_clean[which(rowMeans(is.na(data_metabolite)) < 0.20),]
+data_metabolite <- data_metabolite[which(rowMeans(is.na(data_metabolite)) < 0.20),]
+```
+
+Scale the metabolite data to the unit scale allowing K nearest neighbours to correctly idenitfy neighbours.
+```{r}
+data_metabolite <- data_metabolite %>%
+  mutate_all(scale) # scaling is not uniform
+```
+
+Impute missing metabolite data using K nearest neighbours.
+```{r}
+data_metabolite.imputed <- data_metabolite %>%
+  as.matrix() %>% # because impute.knn only works on matrices
+  impute.knn() %>% 
+  .$data %>% # accesses the data
+  as.data.frame() # pushes the data into a dataframe
+```
+
+Unscale the metabolite back to the log scale.
+```{r}
+data_metabolite.imputed <- data_metabolite.imputed %>%
+  map2_df(., data_metabolite,
+          function(x, y) x * attr(y, "scaled:scale") + attr(y, "scaled:center")) 
+# map2df takes two dataframes and applies a function to each unit in the dataframe
+#function x is the dot, function y is the data_metabolite
+```
+
+Replace the metabolite data in our cleaned data frame with our freshly imputed data.
+```{r}
+data_clean <- data_clean %>%
+  select(-matches("POS_.*|NEG_.*")) %>% # select everything that isn't a metabolite
+  cbind(data_metabolite.imputed)
+```
+
+Remove our processing variables to avoid polluting the global environment.
+```{r}
+rm(data_metabolite, data_metabolite.imputed)
+```

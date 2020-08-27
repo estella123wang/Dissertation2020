@@ -1,0 +1,112 @@
+```{r}
+suppressPackageStartupMessages(library(lme4))
+suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(RColorBrewer))
+
+denoised = NULL 
+Beta_pooled = NULL 
+pvalue_pooled = NULL
+
+
+setwd("~/dissertation/dissertation/adduct")
+adc <- read.csv("Adductomics_imputed.csv")
+adc <-log(adc[,-1])
+cov <- read.csv("Covariates1.csv")
+adc_tec <- read.csv("Adductomics_technical_covariates.csv")
+
+#concat adc_tec to cov
+cov1 <- merge(x=cov,y=adc_tec,by.x="X",by.y="EPIC_ID")
+
+for (k in c(2:ncol(adc))) {
+  model = lmer(adc[,k] ~ age.sample  + gender + bmi + centre + education_plco  +  smok_duration + smok_intensity + smoking_status + (1 | Analytical.batch) + (1|Extraction.batch) + Monocytes + B + CD4T + CD8T +NK + case, 
+             data = cov1, 
+             REML = FALSE,
+             control = lmerControl(check.conv.singular = .makeCC(action ="ignore",tol = 1e-04)))
+  
+  
+  
+  model0 = lmer(adc[,k] ~ age.sample  + gender + bmi + centre + education_plco  +  smok_duration + smok_intensity + smoking_status + (1 | Analytical.batch) + (1|Extraction.batch) + Monocytes + B + CD4T + CD8T + NK, data = cov1, REML = FALSE,control = lmerControl(check.conv.singular = .makeCC(action = "ignore", tol = 1e-04)))
+  
+  
+  
+  pvalue_pooled = c(pvalue_pooled, anova(model, model0)$"Pr(>Chisq)"[2]) 
+  
+  beta = fixef(model)[c("(Intercept)", "case")]
+
+  Beta_pooled = c(Beta_pooled, fixef(model)["type1"])
+  
+ X = cbind(rep(1,length(cov1$case)),
+           as.numeric(cov1$case))
+
+denoised = cbind(denoised,(X %*% beta + resid(model)))
+}
+
+adc1 <- adc[,-1]
+
+colnames(denoised) = colnames(adc1) 
+rownames(denoised) = rownames(adc1)
+```
+
+
+```{r}
+data <- cbind(denoised, cov1$case)
+
+data <- as.data.frame(data)
+write_csv(data,"~/dissertation/dissertation/adduct/adc_denoised_new.csv")
+```
+
+#heatmap
+```{r}
+suppressPackageStartupMessages(library(pheatmap)) 
+
+setwd("/rdsgpfs/general/user/mw519/home/dissertation/dissertation/adduct")
+pdf("heatmap_adc_new.pdf",width=20,height=20) 
+
+mycor = cor(data)
+
+pheatmap(mycor, show_rownames = FALSE, show_colnames = FALSE, breaks = seq(-1, 1, length.out = 100))
+
+dev.off()
+```
+#distribution
+```{r}
+setwd("/rdsgpfs/general/user/mw519/home/dissertation/dissertation/adduct")
+
+pdf("Distributions.pdf") 
+
+par(mfrow = c(6, 6), mar = c(1, 1, 1, 1)) 
+for (k in 1:ncol(data)) {
+  xfull = density(data[, k])
+  x0 = density(data[as.character(cov1$case) =="0", k])
+  x1 = density(data[as.character(cov1$case) =="1", k])
+  plot(density(data[, k]), col = "skyblue", xlab = "",
+        main = "", ylab = colnames(data)[k], las = 1,
+        ylim = range(c(xfull$y, x0$y, x1$y)))
+  lines(x0, col = "darkgreen")
+  lines(x1, col = "tomato")
+  if (k == 1) {
+    legend("topleft", lwd = 2, 
+           col = c("skyblue", "darkgreen", "tomato"), 
+           legend = c("Full sample", "Controls", "Cases"), cex = 0.7)
+  }
+}
+
+dev.off()
+```
+```{r}
+library(ggfortify)
+pca_res <- prcomp(denoised, scale. = TRUE)
+
+names(data)[ncol(data)]<-"case"
+data$case <- as.character(data$case)
+
+#get pca plot
+setwd("/rdsgpfs/general/user/mw519/home/dissertation/dissertation/adduct")
+
+pdf("pca_denoised.pdf")
+autoplot(pca_res, data = data, colour = "case",scale = 0)
+
+dev.off()
+```
+
+
