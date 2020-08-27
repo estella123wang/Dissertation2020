@@ -7,8 +7,8 @@ date: 4-Aug-2020
 
 ```{r}
 #load packages
-source_rmd <- function(f){library(knitr); source(purl(f, tempfile(), quiet=TRUE))}
-source("/rdsgpfs/general/user/mw519/home/dissertation/sample_pls/pls_functions.R")
+#source_rmd <- function(f){library(knitr); source(purl(f, tempfile(), quiet=TRUE))}
+#source("/rdsgpfs/general/user/mw519/home/dissertation/sample_pls/pls_functions.R")
 
 install_load = function(...) {
   for (package in list(...)) {
@@ -23,7 +23,7 @@ install_load("compare", "sgPLS", "pheatmap", "RColorBrewer", "utils", "tidyverse
 
 ```{r}
 #load data
-setwd("/rdsgpfs/general/user/mw519/home/dissertation/data")
+setwd("~/dissertation/dissertation/prot")
 proteins<-readRDS("Proteins.rds")
 covars<-readRDS("Covariates1.rds")
 
