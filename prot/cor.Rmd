@@ -1,0 +1,202 @@
+
+Common beginning
+```{r}
+suppressPackageStartupMessages(library(lme4))
+  suppressPackageStartupMessages(library(stringr))
+  suppressPackageStartupMessages(library(RColorBrewer))
+  
+  denoised = NULL 
+  Beta_pooled = NULL 
+  pvalue_pooled = NULL
+  
+  
+  setwd("~/dissertation/dissertation/prot/data")
+  protein <- readRDS("Proteins.rds")
+  
+  
+  library(DMwR)
+  protein = knnImputation(protein,k=10)
+  sum(is.na(prot1))
+  
+  
+  setwd("~/dissertation/dissertation/prot/data")
+  cov <- read.csv("Covariates1.csv")
+  prot_tec <- readRDS("Proteins_technical_covariates.rds")
+  
+  #concat adc_tec to cov
+  cov <- merge(x=cov,y=prot_tec,by.x="Indiv.ID",by.y="Indiv.ID")
+
+```
+
+
+
+```{r}
+prot1 = protein
+prot1$ID = rownames(prot1)
+cov1 = cov[which(cov$subtype=="Large-cell carcinoma"|cov$case==0),]
+df = merge(x=prot1,y=cov1,by.x="ID",by.y="Indiv.ID")
+
+
+
+prot <- df[,2:93]
+cov1 <- df[,-c(2:93)]
+
+y_large<-NULL
+for (k in c(1:ncol(prot))) {
+  model = lmer(prot[,k] ~ age.sample  + gender + bmi + centre + education_plco  +  smok_duration + smok_intensity + smoking_status + (1 | Plate.ID) + Monocytes + B + CD4T + CD8T +NK + case,
+               data = cov1, 
+             REML = FALSE,
+             control = lmerControl(check.conv.singular = .makeCC(action ="ignore",tol = 1e-04)))
+  
+  
+  
+  model0 = lmer(prot[,k] ~ age.sample  + gender + bmi + centre + education_plco  +  smok_duration + smok_intensity + smoking_status + (1 | Plate.ID) + Monocytes + B + CD4T + CD8T +NK, data = cov1, REML = FALSE,control = lmerControl(check.conv.singular = .makeCC(action = "ignore", tol = 1e-04)))
+
+
+  vcov = as.data.frame(VarCorr(model0))$vcov
+  
+  res = c(summary(model)$coefficients["case",1:2], anova(model, model0)$`Pr(>Chisq)`[2],
+          vcov[1]/sum(vcov))
+  
+  names(res) = c("coef", "coef.se","pval", "plate.id")
+  
+  tmp <- res
+  y_large <- rbind(y_large, res)
+}
+
+t0 = Sys.time()
+rownames(y_large) = colnames(prot)
+t1 = Sys.time()
+print(t1 - t0)
+setwd("~/dissertation/dissertation/prot/cor_table")
+write.csv(y_large[,c(1,3)],"cor of large.csv")
+```
+
+```{r}
+prot1 = protein
+prot1$ID = rownames(prot1)
+cov1 = cov[which(cov$subtype=="Adenocarcinoma"|cov$case==0),]
+df = merge(x=prot1,y=cov1,by.x="ID",by.y="Indiv.ID")
+
+
+
+prot <- df[,2:93]
+cov1 <- df[,-c(2:93)]
+
+y_Ade<-NULL
+for (k in c(1:ncol(prot))) {
+  model = lmer(prot[,k] ~ age.sample  + gender + bmi + centre + education_plco  +  smok_duration + smok_intensity + smoking_status + (1 | Plate.ID) + Monocytes + B + CD4T + CD8T +NK + case,
+               data = cov1, 
+             REML = FALSE,
+             control = lmerControl(check.conv.singular = .makeCC(action ="ignore",tol = 1e-04)))
+  
+  
+  
+  model0 = lmer(prot[,k] ~ age.sample  + gender + bmi + centre + education_plco  +  smok_duration + smok_intensity + smoking_status + (1 | Plate.ID) + Monocytes + B + CD4T + CD8T +NK, data = cov1, REML = FALSE,control = lmerControl(check.conv.singular = .makeCC(action = "ignore", tol = 1e-04)))
+
+
+  vcov = as.data.frame(VarCorr(model))$vcov
+  
+  res = c(summary(model)$coefficients["case",1:2], anova(model, model0)$`Pr(>Chisq)`[2],
+          vcov[1]/sum(vcov))
+  
+  names(res) = c("coef", "coef.se","pval", "plate.id")
+  
+  tmp <- res
+  y_Ade <- rbind(y_Ade, res)
+}
+
+t0 = Sys.time()
+rownames(y_Ade) = colnames(prot)
+t1 = Sys.time()
+print(t1 - t0)
+setwd("~/dissertation/dissertation/prot/cor_table")
+write.csv(y_large[,c(1,3)],"cor of Ade.csv")
+```
+
+
+```{r}
+#readdata()
+prot1 = protein
+prot1$ID = rownames(prot1)
+
+cov1= cov[which(cov$subtype=="Small-cell carcinoma"|cov$case==0),]
+df = merge(x=prot1,y=cov1,by.x="ID",by.y="Indiv.ID")
+
+prot <- df[,2:93]
+cov1 <- df[,-c(2:93)]
+
+y_Small<-NULL
+for (k in c(1:ncol(prot))) {
+  model = lmer(prot[,k] ~ age.sample  + gender + bmi + centre + education_plco  +  smok_duration + smok_intensity + smoking_status + (1 | Plate.ID) + Monocytes + B + CD4T + CD8T +NK + case,
+               data = cov1, 
+             REML = FALSE,
+             control = lmerControl(check.conv.singular = .makeCC(action ="ignore",tol = 1e-04)))
+  
+  
+  
+  model0 = lmer(prot[,k] ~ age.sample  + gender + bmi + centre + education_plco  +  smok_duration + smok_intensity + smoking_status + (1 | Plate.ID) + Monocytes + B + CD4T + CD8T +NK, data = cov1, REML = FALSE,control = lmerControl(check.conv.singular = .makeCC(action = "ignore", tol = 1e-04)))
+
+  vcov = as.data.frame(VarCorr(model))$vcov
+  
+  res = c(summary(model)$coefficients["case",1:2], anova(model, model0)$`Pr(>Chisq)`[2],
+          vcov[1]/sum(vcov))
+  
+  names(res) = c("coef", "coef.se","pval", "plate.id")
+  
+  tmp <- res
+  y_Small <- rbind(y_Small, res)
+}
+
+t0 = Sys.time()
+rownames(y_Small) = colnames(prot)
+t1 = Sys.time()
+print(t1 - t0)
+setwd("~/dissertation/dissertation/prot/cor_table")
+write.csv(y_Small[,c(1,3)],"cor of Small.csv")
+```
+
+
+
+```{r}
+prot1 = protein
+prot1$ID = rownames(prot1)
+cov1= cov[which(cov$subtype=="Squamous-cell carcinoma"|cov$case==0),]
+df = merge(x=prot1,y=cov1,by.x="ID",by.y="Indiv.ID")
+
+
+prot <- df[,2:93]
+cov1 <- df[,-c(2:93)]
+
+y_Squ<-NULL
+for (k in c(1:ncol(prot))) {
+  model = lmer(prot[,k] ~ age.sample  + gender + bmi + centre + education_plco  +  smok_duration + smok_intensity + smoking_status + (1 | Plate.ID) + Monocytes + B + CD4T + CD8T +NK + case,
+               data = cov1, 
+             REML = FALSE,
+             control = lmerControl(check.conv.singular = .makeCC(action ="ignore",tol = 1e-04)))
+  
+  
+  
+  model0 = lmer(prot[,k] ~ age.sample  + gender + bmi + centre + education_plco  +  smok_duration + smok_intensity + smoking_status + (1 | Plate.ID) + Monocytes + B + CD4T + CD8T +NK, data = cov1, REML = FALSE,control = lmerControl(check.conv.singular = .makeCC(action = "ignore", tol = 1e-04)))
+  
+
+  vcov = as.data.frame(VarCorr(model))$vcov
+  
+  res = c(summary(model)$coefficients["case",1:2], anova(model, model0)$`Pr(>Chisq)`[2],
+          vcov[1]/sum(vcov))
+  
+  names(res) = c("coef", "coef.se","pval", "plate.id")
+  
+  tmp <- res
+  y_Squ <- rbind(y_Squ, res)
+}
+
+t0 = Sys.time()
+rownames(y_Squ) = colnames(prot)
+t1 = Sys.time()
+print(t1 - t0)
+setwd("~/dissertation/dissertation/prot/cor_table")
+write.csv(y_Squ[,c(1,3)],"cor of Squ.csv")
+```
+
+

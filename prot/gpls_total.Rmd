@@ -1,0 +1,194 @@
+```{r}
+source("~/dissertation/dissertation/pls_functions.R")
+
+install_load = function(...) {
+  for (package in list(...)) {
+    require(package, character.only=TRUE) || install.packages(package)
+    library(package, character.only=TRUE)
+  }
+}
+
+
+install_load("compare", "sgPLS", "pheatmap", "RColorBrewer", "utils", "tidyverse")
+```
+
+```{r}
+X_pooled<-prot[,1:92]
+
+Y_pooled = prot[,93]
+```
+
+```{r}
+Y_pooled<-as.factor(Y_pooled)
+length(Y_pooled)
+```
+```{r}
+set.seed(1)
+res_splsda = CalibratesPLSDA(dataX = X_pooled, dataY = Y_pooled,ncomp = 1, Nrepeat = 10)
+```
+
+```{r}
+PlotCalib(res = res_splsda)
+```
+
+```{r}
+MysPLSDA_pooled <- splsda(X_pooled, Y_pooled, ncomp = 1, mode="regression", keepX = 2)
+```
+
+
+
+split into groups
+group2
+```{r}
+chemo = c("STAMBP",colnames(proteins[,grepl("CCL",colnames(proteins))]),colnames(proteins[,grepl("CX", colnames(proteins))]),colnames(proteins[,grepl("MCP", colnames(proteins))]),colnames(proteins[,grepl("MMP", colnames(proteins))]))
+
+cyto = c("SLAMF1","TRANCE","TSLP","TWEAK","IFNgamma",colnames(proteins[,grepl("IL", colnames(proteins))]),colnames(proteins[,grepl("TN", colnames(proteins))]),colnames(proteins[,grepl("CD", colnames(proteins))]),colnames(proteins[,grepl("OS", colnames(proteins))]),colnames(proteins[,grepl("LIF", colnames(proteins))]),colnames(proteins[,grepl("CS", colnames(proteins))]))
+ 
+growth = c("VEGFA", "LAPTGFbeta1", "TGFalpha", "FGF23", "FGF5","FGF21", "BetaNGF", "HGF", "FGF19", "NRTN", "NT3", "ARTN", "DNER", "GDNF", "AXIN1")
+
+cycle = c("PDL1","SCF","SIRT2","CASP8","CST5")
+
+tempGroups = c(TNF,chemo,interleukins,Meta, growth,cycle,interferons)
+
+meta <- setdiff(colnames(proteins),tempGroups)
+
+Groups = c(chemo, cyto, growth, meta)
+
+X_pooled = X_pooled[,Groups]
+
+Xgroups = c(22, 67, 82)
+```
+
+
+```{r}
+set.seed(1)
+res_sgplsda = CalibratesgPLSDA(dataX = X_pooled, dataY = Y_pooled, ncomp = 1, Nrepeat = 10, Xgroups = Xgroups)
+```
+
+```{r}
+PlotCalib(res = res_sgplsda, type = "sgPLSDA")
+```
+
+```{r}
+MysgPLSDA_pooled <- sgPLSda(X_pooled, Y_pooled, ncomp = 1, ind.block.x = Xgroups, keepX = 3, alpha.x = 0.1)
+```
+
+```{r}
+length(MysgPLSDA_pooled$loadings$X)
+length(MysPLSDA_pooled$loadings$X)
+```
+
+```{r}
+MysgPLSDA_pooled$loadings$X["IL33"]
+MysgPLSDA_pooled$loadings$X
+```
+
+
+group1
+```{r}
+Loadings = cbind(MysPLSDA_pooled$loadings$X, MysgPLSDA_pooled$loadings$X, rep(NA, 92), rep(NA, 92))
+Loadings = as.vector(t(Loadings))
+Loadings = Loadings[-c(length(Loadings) - 1, length(Loadings))]
+```
+
+
+```{r}
+setwd("~/dissertation/dissertation/prot/pls")
+pdf("sgPLS and sPLSDA_total.pdf",width = 30, height = 8)
+MyPal = brewer.pal("Paired", n = 12)
+
+plot(Loadings, col = c(MyPal[6], MyPal[10], NA, NA), xaxt = "n", ylab = "Loadings Coefficients", type = "h",lwd = 3, xlab = "")
+
+#axis(1, at = seq(1, 92 * 7, by = 7), labels = colnames(MyPLSDA_pooled$X), las = 2)
+axis(1, at = seq(1, 92 * 7, by = 7), labels = colnames(MyPLSDA_pooled$X), las = 3)
+
+axis(1, at = c(0, Xgroups, 85) * 4, line = 6, labels = NA) 
+
+axis(1, at = c(2,15,40,55,61,70,83,90) * 4, labels = c("TNF", "chemo", "interleukins", "interferons", "cycle", "growth", "Meta", "lymphokines"), line = 6, tick = FALSE)
+     
+abline(v = c(0, Xgroups, 85) * 4, lty = 3, col = "black") 
+abline(h = 0, lty = 2)
+
+legend("bottomright", legend = c("sPLS-DA", "sgPLS-DA"),lty = 1, lwd = 3, col = c(MyPal[6], MyPal[10], NA, NA), cex = 0.75)
+
+dev.off()
+```
+
+#visualising the misclassification rate
+```{r}
+MyPredict = predict(MysPLSDA_pooled, newdata = X_pooled) 
+fitted = MyPredict$class$max.dist
+table(fitted)
+```
+
+```{r}
+MyPredict = predict(MysPLSDA_pooled, newdata = X_pooled)
+
+MSEP_sPLSDA = NULL
+
+idx = which(is.na(covars$subtype)) 
+
+MSEP_sPLSDA[["control"]] = 1 - sum(diag(table(Y_pooled[idx], MyPredict$class$max.dist[idx])))/length(idx)
+
+for (subtype in c("Large-cell carcinoma", "Other lung cancer", "Adenocarcinoma", "Squamous-cell carcinoma", "Small-cell carcinoma")) {
+idx = which(covars$subtype == subtype) 
+
+MSEP_sPLSDA[[subtype]] = 1 - sum(diag(table(Y_pooled[idx], MyPredict$class$max.dist[idx])))/length(idx)
+}
+
+MyPredict = predict(MysgPLSDA_pooled, newdata = X_pooled)
+
+MSEP_sgPLSDA = NULL
+
+idx = which(is.na(covars$subtype)) 
+
+MSEP_sgPLSDA[["control"]] = 1 - sum(diag(table(Y_pooled[idx], MyPredict$class$max.dist[idx])))/length(idx)
+
+for (subtype in c("Large-cell carcinoma", "Other lung cancer", "Adenocarcinoma", "Squamous-cell carcinoma", "Small-cell carcinoma")) {
+idx = which(covars$subtype == subtype) 
+
+MSEP_sgPLSDA[[subtype]] = 1 - sum(diag(table(Y_pooled[idx], MyPredict$class$max.dist[idx])))/length(idx)
+}
+
+
+MSEP = cbind(MSEP_sPLSDA, MSEP_sgPLSDA)
+rownames(MSEP) = c("Controls", "Large-cell carcinoma", "Other lung cancer", "Adenocarcinoma", "Squamous-cell carcinoma", "Small-cell carcinoma")
+
+
+MSEP = cbind(MSEP, rep(NA, 6), rep(NA, 6))
+MSEP = as.vector(t(MSEP))
+MSEP = MSEP[-c(length(MSEP) - 1, length(MSEP))]
+
+setwd("~/dissertation/dissertation/prot/pls")
+pdf("misclassification_gPLS_total.pdf")
+
+plot(MSEP, type = "h", lwd = 3, xaxt = "n", xlab = "",ylab = "Misclassification Rates", col = c(MyPal[6],
+MyPal[10], NA, NA), ylim = c(0, max(MSEP[!is.na(MSEP)])), las = 1)
+
+axis(1, at = seq(1.5, 4 * 6, by = 4), labels = c("Controls","Large", "Other", "Ade", "Squa", "Small"))
+
+dev.off()
+```
+
+```{r}
+MSEP
+```
+
+
+
+```{r}
+setwd("~/dissertation/dissertation/prot/pls")
+pdf("heatmap_gPLS_total.pdf",width = 18, height = 10 )
+
+set.seed(1)
+Stability_results = StabilityPlot(X = X_pooled, Y = Y_pooled,
+NIter = 100)
+pheatmap(Stability_results, cluster_rows = FALSE, cluster_cols = FALSE, display_numbers = TRUE, filename = "heatmap_gPLS_total.pdf",height = 5, width = 10)
+
+dev.off()
+```
+```{r}
+#c(22, 67, 82)
+sum(MysgPLSDA_pooled$loadings$X[68:82]<0)
+```
+

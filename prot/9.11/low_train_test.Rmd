@@ -1,0 +1,171 @@
+```{r}
+suppressPackageStartupMessages(library(lme4))
+suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(RColorBrewer))
+
+denoised = NULL 
+Beta_pooled = NULL 
+pvalue_pooled = NULL
+
+
+setwd("~/dissertation/dissertation/prot/data")
+prot <- readRDS("Proteins.rds")
+
+library(DMwR)
+prot = knnImputation(prot,k=10)
+sum(is.na(prot))
+```
+
+merge cov and tec
+```{r}
+setwd("~/dissertation/dissertation/prot/data")
+cov <- read.csv("Covariates1.csv")
+prot_tec <- readRDS("Proteins_technical_covariates.rds")
+
+#concat adc_tec to cov
+cov1 <- merge(x=cov,y=prot_tec,by.x="Indiv.ID",by.y="Indiv.ID")
+```
+
+combined prot and newest cov(cov1)
+```{r}
+prot$ID = rownames(prot)
+df = merge(x=prot,y=cov1,by.x="ID",by.y="Indiv.ID")
+
+prot = df[,c(2:93)]
+```
+
+
+```{r}
+for (k in c(1:ncol(prot))) {
+  model = lmer(prot[,k] ~ age.sample  + gender + bmi + centre + education_plco  +  smok_duration + smok_intensity + smoking_status + (1 | Plate.ID) + Monocytes + B + CD4T + CD8T +NK + case,
+               data = cov1, 
+             REML = FALSE,
+             control = lmerControl(check.conv.singular = .makeCC(action ="ignore",tol = 1e-04)))
+  
+  
+  
+  model0 = lmer(prot[,k] ~ age.sample  + gender + bmi + centre + education_plco  +  smok_duration + smok_intensity + smoking_status + (1 | Plate.ID) + Monocytes + B + CD4T + CD8T +NK, data = cov1, REML = FALSE,control = lmerControl(check.conv.singular = .makeCC(action = "ignore", tol = 1e-04)))
+  
+  
+  
+  pvalue_pooled = c(pvalue_pooled, anova(model, model0)$"Pr(>Chisq)"[2]) 
+  
+  beta = fixef(model)[c("(Intercept)", "case")]
+
+  Beta_pooled = c(Beta_pooled, fixef(model)["type1"])
+  
+ X = cbind(rep(1,length(cov1$case)),
+           as.numeric(cov1$case))
+
+denoised = cbind(denoised,(X %*% beta + resid(model)))
+}
+
+colnames(denoised) = colnames(prot) 
+rownames(denoised) = rownames(prot)
+``` 
+  
+```{r}
+data_new <- cbind(denoised, df$case,df$ttd)
+
+colnames(data_new)[94]<-"ttd"
+colnames(data_new)[93]<-"case"
+```
+
+
+
+
+```{r}
+ttd_list = cov1$ttd[which(!is.na(cov1$ttd))]
+median_ttd<-median(ttd_list)
+```
+
+Protein ttd > median
+```{r}
+data_new=as.data.frame(data_new)
+low_ttd<-data_new[which(data_new$ttd < median_ttd),]
+control_ttd <- data_new[which(is.na(data_new$ttd)),]
+sample_control<-sample_n(control_ttd, 161)
+cob_low_ttd <- rbind(sample_control,low_ttd)
+```
+
+
+```{r}
+in_low_ttd<-cob_low_ttd[,1:92]
+out_low_ttd<-cob_low_ttd[,93]
+
+
+
+#isoton
+setwd("~/dissertation/dissertation/prot/9.11/iso")
+write.table(t(in_low_ttd), "in_low_ttd_iso.txt", sep=" ",col.names=FALSE,row.names = FALSE)
+
+isoton_list = append(length(out_low_ttd),out_low_ttd)
+write.table(isoton_list, "out_low_ttd_iso.txt", sep=" ",col.names=FALSE,row.names = FALSE)
+
+#mma
+setwd("~/dissertation/dissertation/prot/strat/mma")
+write.csv(t(in_low_ttd), "in_low_ttd_mma.csv", col.names=FALSE,row.names = FALSE)
+
+write.table(t(out_low_ttd), "out_low_ttd_mma.txt", sep=",",col.names=FALSE,row.names = FALSE)
+```
+
+```{r}
+train_control<-sample_n(cob_low_ttd, nrow(cob_low_ttd)*0.7)
+
+in_low_train<-train_control[,1:92]
+out_low_train<-train_control[,93]
+
+
+
+#isoton
+setwd("~/dissertation/dissertation/prot/9.11/iso")
+write.table(t(in_low_train), "in_low_train_iso.txt", sep=" ",col.names=FALSE,row.names = FALSE)
+
+isoton_list = append(length(out_low_train),out_low_train)
+write.table(isoton_list, "out_low_train_iso.txt", sep=" ",col.names=FALSE,row.names = FALSE)
+
+#mma
+setwd("~/dissertation/dissertation/prot/strat/mma")
+write.csv(t(in_low_train), "in_low_train_mma.csv", col.names=FALSE,row.names = FALSE)
+
+write.table(t(out_low_train), "out_low_train_mma.txt", sep=",",col.names=FALSE,row.names = FALSE)
+```
+
+```{r}
+cob_low_ttd$case
+```
+```{r}
+low_train<-cob_low_ttd[c(1:113,161:274),]
+low_train$case
+```
+```{r}
+low_test<-cob_low_ttd[c(113:161,274:322),]
+low_test$case
+```
+```{r}
+161+113
+```
+```{r}
+in_low_train<-low_train[,1:92]
+out_low_train<-low_train[,93]
+
+
+
+#isoton
+setwd("~/dissertation/dissertation/prot/9.11/iso")
+write.table(t(in_low_train), "in_low_train_iso.txt", sep=" ",col.names=FALSE,row.names = FALSE)
+
+isoton_list = append(length(out_low_train),out_low_train)
+write.table(isoton_list, "out_low_train_iso.txt", sep=" ",col.names=FALSE,row.names = FALSE)
+
+#mma
+setwd("~/dissertation/dissertation/prot/strat/mma")
+write.csv(t(in_low_train), "in_low_train_mma.csv", col.names=FALSE,row.names = FALSE)
+
+write.table(t(out_low_train), "out_low_train_mma.txt", sep=",",col.names=FALSE,row.names = FALSE)
+```
+
+```{r}
+
+```
+

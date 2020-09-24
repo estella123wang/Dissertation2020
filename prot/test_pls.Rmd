@@ -1,0 +1,90 @@
+```{r}
+X_pooled<-low_ttd[,1:92]
+
+Y_pooled = low_ttd[,93]
+
+MysPLSDA_pooled <- splsda(X_pooled, Y_pooled, ncomp = 1, mode="regression", keepX = 10)
+
+MysgPLSDA_pooled <- sgPLSda(X_pooled, Y_pooled, ncomp = 1, ind.block.x = Xgroups, keepX = 7, alpha.x = 0.2)
+
+MyPredict = predict(MysPLSDA_pooled, newdata = X_pooled) 
+fitted = MyPredict$class$max.dist
+
+MSEP_sPLSDA = NULL
+
+
+MSEP_sPLSDA[["control"]] = 1 - sum(diag(table(Y_pooled[idx], MyPredict$class$max.dist[idx])))/sum(!is.na(Y_pooled[idx]))
+
+
+for (subtype in c("Large-cell carcinoma", "Other lung cancer", "Adenocarcinoma", "Squamous-cell carcinoma", "Small-cell carcinoma")) {
+idx = which(covars$subtype == subtype) 
+
+MSEP_sPLSDA[[subtype]] = 1 - sum(diag(table(Y_pooled[idx], MyPredict$class$max.dist[idx])))/sum(!is.na(Y_pooled[idx]))
+}
+
+MyPredict = predict(MysgPLSDA_pooled, newdata = X_pooled)
+
+MSEP_sgPLSDA = NULL
+
+idx = which(is.na(covars$subtype)) 
+
+MSEP_sgPLSDA[["control"]] = 1 - sum(diag(table(Y_pooled[idx], MyPredict$class$max.dist[idx])))/sum(!is.na(Y_pooled[idx]))
+
+for (subtype in c("Large-cell carcinoma", "Other lung cancer", "Adenocarcinoma", "Squamous-cell carcinoma", "Small-cell carcinoma")) {
+idx = which(covars$subtype == subtype) 
+
+MSEP_sgPLSDA[[subtype]] = 1 - sum(diag(table(Y_pooled[idx], MyPredict$class$max.dist[idx])))/sum(!is.na(Y_pooled[idx]))
+}
+
+
+MSEP = cbind(MSEP_sPLSDA, MSEP_sgPLSDA)
+
+MSEP
+```
+
+```{r}
+X_pooled<-prot[,1:92]
+
+Y_pooled = prot[,93]
+
+MysPLSDA_pooled <- splsda(X_pooled, Y_pooled, ncomp = 1, mode="regression", keepX = 10)
+
+MysgPLSDA_pooled <- sgPLSda(X_pooled, Y_pooled, ncomp = 1, ind.block.x = Xgroups, keepX = 7, alpha.x = 0.2)
+
+MyPredict = predict(MysPLSDA_pooled, newdata = X_pooled) 
+fitted = MyPredict$class$max.dist
+table(fitted)
+table(Y_pooled)
+
+MSEP_sPLSDA = NULL
+
+idx = which(is.na(covars$subtype)) 
+
+MSEP_sPLSDA[["control"]] = 1 - sum(diag(table(Y_pooled[idx], MyPredict$class$max.dist[idx])))/length(idx)
+
+for (subtype in c("Large-cell carcinoma", "Other lung cancer", "Adenocarcinoma", "Squamous-cell carcinoma", "Small-cell carcinoma")) {
+idx = which(covars$subtype == subtype) 
+
+MSEP_sPLSDA[[subtype]] = 1 - sum(diag(table(Y_pooled[idx], MyPredict$class$max.dist[idx])))/length(idx)
+}
+
+MyPredict = predict(MysgPLSDA_pooled, newdata = X_pooled)
+
+MSEP_sgPLSDA = NULL
+
+idx = which(is.na(covars$subtype)) 
+
+MSEP_sgPLSDA[["control"]] = 1 - sum(diag(table(Y_pooled[idx], MyPredict$class$max.dist[idx])))/length(idx)
+
+for (subtype in c("Large-cell carcinoma", "Other lung cancer", "Adenocarcinoma", "Squamous-cell carcinoma", "Small-cell carcinoma")) {
+idx = which(covars$subtype == subtype) 
+
+MSEP_sgPLSDA[[subtype]] = 1 - sum(diag(table(Y_pooled[idx], MyPredict$class$max.dist[idx])))/length(idx)
+}
+
+
+MSEP = cbind(MSEP_sPLSDA, MSEP_sgPLSDA)
+
+MSEP
+```
+

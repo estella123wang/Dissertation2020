@@ -1,0 +1,59 @@
+```{r}
+setwd("~/dissertation/dissertation/prot")
+covars <- read.csv("Covariates1.csv")
+prot <-readRDS("Proteins.rds")
+prot_denoised <-read.csv("prot_denoised_new.csv")
+```
+
+```{r}
+library(DMwR)
+prot = knnImputation(prot,k=10)
+sum(is.na(prot))
+```
+
+```{r}
+prot$colName = rownames(prot)
+
+prot1 <- merge(covars, prot, by.x="Indiv.ID", by.y="colName")
+
+prot_org <- prot1[,29:ncol(prot1)]
+
+library(ggfortify)
+pca_res_pos <- prcomp(prot_org, scale. = TRUE)
+```
+
+```{r}
+ev = with(pca_res_pos, sdev**2/sum(sdev**2))
+sum(!cumsum(ev)>0.95)
+```
+
+
+```{r}
+autoplot(pca_res_pos, data = df,colour = "gender")
+```
+```{r}
+autoplot(pca_res_pos, data = df,colour = "cohort")
+```
+```{r}
+autoplot(pca_res_pos, data = df,colour = "subtype")
+```
+```{r}
+#prot_denoised$colName = rownames(prot_denoised)
+#prot_denoised1 <- merge(covars, prot_denoised, by.x="Indiv.ID", by.y="colName")
+prot_denoised1 <- cbind(covars, prot_denoised)
+```
+
+```{r}
+library(ggfortify)
+pca_res_pos_de <- prcomp(prot_denoised, scale. = TRUE)
+
+ev = with(pca_res_pos_de, sdev**2/sum(sdev**2))
+sum(!cumsum(ev)>0.95)
+```
+
+```{r}
+autoplot(pca_res_pos_de, data = prot_denoised1,colour = "cohort")
+```
+```{r}
+autoplot(pca_res_pos_de, data = prot_denoised1,colour = "gender")
+```

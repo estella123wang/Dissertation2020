@@ -1,0 +1,57 @@
+```{r}
+setwd("~/dissertation/dissertation/prot/data")
+prot<-read.csv("prot_denoised_new.csv")
+covars<-read.csv("Covariates1.csv")
+
+df <- cbind(prot, covars)
+```
+
+```{r}
+ttd_list = covars$ttd[which(!is.na(covars$ttd))]
+median_ttd<-median(ttd_list)
+```
+
+
+Protein ttd > median
+```{r}
+high_ttd<-df[which(df$ttd > median_ttd),]
+control_ttd <- df[which(is.na(df$ttd)),]
+sample_control<-sample_n(control_ttd, 161)
+cob_high_ttd <- rbind(sample_control,high_ttd)
+```
+
+```{r}
+in_high_ttd<-cob_high_ttd[,1:92]
+out_high_ttd<-cob_high_ttd[,93]
+
+
+
+#isoton
+setwd("~/dissertation/dissertation/prot/strat/iso")
+write.table(t(in_high_ttd), "in_high_ttd_iso.txt", sep=" ",col.names=FALSE,row.names = FALSE)
+
+isoton_list = append(length(out_high_ttd),out_high_ttd)
+write.table(isoton_list, "out_high_ttd_iso.txt", sep=" ",col.names=FALSE,row.names = FALSE)
+
+#mma
+setwd("~/dissertation/dissertation/prot/strat/mma")
+write.csv(t(in_high_ttd), "in_high_ttd_mma.csv", col.names=FALSE,row.names = FALSE)
+
+write.table(t(out_high_ttd), "out_high_ttd_mma.txt", sep=",",col.names=FALSE,row.names = FALSE)
+```
+
+
+```{r}
+setwd("~/dissertation/dissertation/prot/strat/code")
+write.csv(t(high_ttd), "high_ttd.csv", col.names=FALSE,row.names = FALSE)
+
+write.csv(t(low_ttd), "low_ttd.csv", col.names=FALSE,row.names = FALSE)
+```
+```{r}
+high_ttd$ttd
+```
+
+```{r}
+out_high_ttd[,93]
+```
+

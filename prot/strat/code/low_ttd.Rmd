@@ -1,0 +1,39 @@
+---
+title: "data classification"
+output: html_document
+---
+
+```{r}
+setwd("~/dissertation/dissertation/prot/data")
+prot<-read.csv("prot_denoised_new.csv")
+covars<-read.csv("Covariates1.csv")
+
+df <- cbind(prot, covariate)
+```
+
+```{r}
+ttd_list = covars$ttd[which(!is.na(covars$ttd))]
+median_ttd<-median(ttd_list)
+```
+
+
+Protein ttd < median
+```{r}
+low_ttd<-df[which(df$ttd < median_ttd),]
+
+in_low_ttd<-low_ttd[,1:92]
+out_low_ttd<-low_ttd[,93]
+
+#isoton
+setwd("~/dissertation/dissertation/prot/strat/iso")
+write.table(t(in_low_ttd), "in_low_ttd_iso.txt", sep=" ",col.names=FALSE,row.names = FALSE)
+
+isoton_list = append(length(out_low_ttd),out_low_ttd)
+write.table(isoton_list, "out_low_ttd_iso.txt", sep=" ",col.names=FALSE,row.names = FALSE)
+
+#mma
+setwd("~/dissertation/dissertation/prot/strat/mma")
+write.csv(t(in_low_ttd), "in_low_ttd_mma.csv", col.names=FALSE,row.names = FALSE)
+
+write.table(t(out_low_ttd), "out_low_ttd_mma.txt", sep=",",col.names=FALSE,row.names = FALSE)
+```

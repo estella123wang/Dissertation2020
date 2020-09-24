@@ -1,0 +1,64 @@
+```{r}
+suppressPackageStartupMessages(library(pheatmap)) 
+t_in_low_ttd = t(in_low_ttd)
+
+setwd("~/dissertation/dissertation/prot/Figures")
+pdf("low_ttd.pdf",width = 15,height = 10)
+mycor = cor(in_low_ttd)
+rownames(mycor) = colnames(in_low_ttd)
+pheatmap(mycor, show_rownames = FALSE, show_colnames = TRUE,
+breaks = seq(-0.4, 1, length.out = 100))
+dev.off()
+```
+```{r}
+setwd("~/dissertation/dissertation/prot/Figures")
+pdf("high_ttd.pdf",width = 15,height = 10)
+mycor = cor(in_high_ttd)
+pheatmap(mycor, show_rownames = FALSE, show_colnames = TRUE,
+breaks = seq(-0.4, 1, length.out = 100))
+dev.off()
+```
+
+```{r}
+suppressPackageStartupMessages(library(pheatmap)) 
+
+setwd("~/dissertation/dissertation/prot/Figures")
+pdf("baseline.pdf",width = 15,height = 10)
+mycor = cor(prot)
+pheatmap(mycor, show_rownames = FALSE, show_colnames = TRUE,
+breaks = seq(-0.4, 1, length.out = 100))
+dev.off()
+```
+
+
+```{r}
+a = sum(mycor[,1]<0.2)
+a
+92-a2
+```
+```{r}
+setwd("~/dissertation/dissertation/prot/Figures")
+pdf("heatmap_case.pdf",width = 15,height = 10)
+casegroup <- df[which(df$case==1),2:93]
+mycor = cor(casegroup)
+pheatmap(mycor, show_rownames = FALSE, show_colnames = TRUE,
+breaks = seq(-0.4, 1, length.out = 100))
+dev.off()
+```
+
+
+
+
+```{r}
+setwd("~/dissertation/dissertation/prot/Figures")
+pdf("heatmap_control.pdf",width = 15,height = 10)
+controlgroup <- df[which(df$case==0),2:93]
+mycor = cor(controlgroup)
+pheatmap(mycor, show_rownames = FALSE, show_colnames = TRUE,
+breaks = seq(-0.4, 1, length.out = 100))
+```
+
+```{r}
+
+```
+

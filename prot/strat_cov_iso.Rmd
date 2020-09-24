@@ -1,0 +1,51 @@
+```{r}
+high_cov  = high_ttd[,c(93,97,98,105,106,107,108,109,112,113,115:120)]
+colnames(high_cov)
+```
+
+```{r}
+library(DMwR)
+high_cov = knnImputation(high_cov,k=1)
+sum(is.na(high_cov))
+```
+
+
+```{r}
+setwd("~/dissertation/dissertation/prot/data9.6")
+out_high_cov = high_cov[,1]
+in_high_cov = high_cov[,-1]
+
+write.table(append(nrow(out_high_cov),out_high_cov),"out_high_cov.txt",row.names = FALSE,col.names=FALSE)
+write.table(t(in_high_cov),"in_high_cov.txt",row.names = FALSE,col.names=FALSE)
+```
+
+```{r}
+low_cov  = low_ttd[,c(93,97,98,105,106,107,108,109,112,113,115:120)]
+colnames(low_cov)
+```
+
+```{r}
+library(DMwR)
+low_cov = knnImputation(low_cov,k=1)
+sum(is.na(low_cov))
+```
+```{r}
+head(low_ttd[93])
+```
+
+
+```{r}
+setwd("~/dissertation/dissertation/prot/data9.6")
+out_low_cov = low_cov[,1]
+in_low_cov = low_cov[,-1]
+
+write.table(append(nrow(out_low_cov),out_low_cov),"out_low_cov.txt",row.names = FALSE,col.names=FALSE)
+write.table(t(in_low_cov),"in_low_cov.txt",row.names = FALSE,col.names=FALSE)
+```
+
+```{r}
+setwd("~/dissertation/dissertation/prot/data9.6")
+prt<- cbind(prot,covars)
+write.csv(prt,"prt.csv")
+```
+

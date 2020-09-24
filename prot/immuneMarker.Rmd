@@ -1,0 +1,75 @@
+immune markers
+```{r}
+setwd("~/dissertation/dissertation/prot/data")
+prot<-read.csv("prot_denoised_new.csv")
+covariate<-read.csv("Covariates1.csv")
+
+df <- cbind(prot, covariate)
+```
+
+```{r}
+case <- df[which(df$case==0),]
+case <- round(case[1:92],digits=2)
+
+case_med <- apply(case,2,median)
+case_min <- apply(case,2,min)
+case_max <- apply(case,2,max)
+
+df_case <- cbind(case_med,case_min,case_max)
+
+df_case1 = data.frame(`case` = paste0(df_case[,1], "(", df_case[,2], ",", df_case[,3], ")"),
+           row.names = rownames(df_case))
+```
+
+```{r}
+cotrol <- df[which(df$case==1),]
+cotrol <- round(cotrol[1:92],digits=2)
+
+cotrol_med <- apply(cotrol,2,median)
+cotrol_min <- apply(cotrol,2,min)
+cotrol_max <- apply(cotrol,2,max)
+
+df_cotrol <- cbind(cotrol_med,cotrol_min,cotrol_max)
+
+df_cotrol1 = data.frame(`control` = paste0(df_cotrol[,1], "(", df_cotrol[,2], ",", df_cotrol[,3], ")"),
+           row.names = rownames(df_cotrol))
+```
+
+```{r}
+EPIC<- df[which(df$cohort=="EPIC"),]
+EPIC <- round(EPIC[1:92],digits=2)
+
+EPIC_med <- apply(EPIC,2,median)
+EPIC_min <- apply(EPIC,2,min)
+EPIC_max <- apply(EPIC,2,max)
+
+df_EPIC <- cbind(EPIC_med,EPIC_min,EPIC_max)
+
+df_EPIC1 = data.frame(`control` = paste0(df_EPIC[,1], "(", df_EPIC[,2], ",", df_EPIC[,3], ")"),
+           row.names = rownames(df_EPIC))
+```
+
+```{r}
+NOWAC<- df[which(df$cohort=="NOWAC"),]
+NOWAC<- round(NOWAC[1:92],digits=2)
+
+NOWAC_med <- apply(NOWAC,2,median)
+NOWAC_min <- apply(NOWAC,2,min)
+NOWAC_max <- apply(NOWAC,2,max)
+
+df_NOWAC <- cbind(NOWAC_med,NOWAC_min,NOWAC_max)
+
+df_NOWAC1 = data.frame(`control` = paste0(df_NOWAC[,1], "(", df_NOWAC[,2], ",", df_NOWAC[,3], ")"),
+           row.names = rownames(df_NOWAC))
+```
+
+```{r}
+df_marker = cbind(df_case1, df_cotrol1, df_EPIC1, df_NOWAC1)
+```
+
+```{r}
+setwd("~/dissertation/dissertation/prot")
+write.csv(df_marker,"marker.csv")
+```
+
+
